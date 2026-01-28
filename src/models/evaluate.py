@@ -10,18 +10,18 @@ from sklearn.metrics import normalized_mutual_info_score
 import helpers
 from models.build_model import from_file
 
-IGNORE_IN_TOTAL = ("contrast",)
+IGNORE_IN_TOTAL = ("contrast",)  # 在总损失中忽略的项
 
 
 def calc_metrics(labels, pred):
     """
-    Compute metrics.
+    计算指标。
 
-    :param labels: Label tensor
+    :param labels: 标签张量
     :type labels: th.Tensor
-    :param pred: Predictions tensor
+    :param pred: 预测张量
     :type pred: th.Tensor
-    :return: Dictionary containing calculated metrics
+    :return: 包含计算指标的字典
     :rtype: dict
     """
     acc, cmat = helpers.ordered_cmat(labels, pred)
@@ -35,12 +35,12 @@ def calc_metrics(labels, pred):
 
 def get_log_params(net):
     """
-    Get the network parameters we want to log.
+    获取我们要记录的网络参数。
 
-    :param net: Model
+    :param net: 模型
     :type net:
-    :return:
-    :rtype:
+    :return: 参数字典
+    :rtype: dict
     """
     params_dict = {}
     weights = []
@@ -67,16 +67,15 @@ def get_log_params(net):
 
 def get_eval_data(dataset, n_eval_samples, batch_size):
     """
-    Create a dataloader to use for evaluation
+    创建用于评估的数据加载器
 
-    :param dataset: Inout dataset.
+    :param dataset: 输入数据集。
     :type dataset: th.utils.data.Dataset
-    :param n_eval_samples: Number of samples to include in the evaluation dataset. Set to None to use all available
-                           samples.
+    :param n_eval_samples: 评估数据集中包含的样本数量。设置为 None 以使用所有可用样本。
     :type n_eval_samples: int
-    :param batch_size: Batch size used for training.
+    :param batch_size: 用于训练的批量大小。
     :type batch_size: int
-    :return: Evaluation dataset loader
+    :return: 评估数据集加载器
     :rtype: th.utils.data.DataLoader
     """
     if n_eval_samples is not None:
@@ -93,17 +92,15 @@ def get_eval_data(dataset, n_eval_samples, batch_size):
 
 def batch_predict(net, eval_data, batch_size):
     """
-    Compute predictions for `eval_data` in batches. Batching does not influence predictions, but it influences the loss
-    computations.
+    批量计算 `eval_data` 的预测。批量处理不影响预测，但会影响损失计算。
 
-    :param net: Model
+    :param net: 模型
     :type net:
-    :param eval_data: Evaluation dataloader
+    :param eval_data: 评估数据加载器
     :type eval_data: th.utils.data.DataLoader
-    :param batch_size: Batch size
+    :param batch_size: 批量大小
     :type batch_size: int
-    :return: Label tensor, predictions tensor, list of dicts with loss values, array containing mean and std of cluster
-             sizes.
+    :return: 标签张量，预测张量，损失值字典列表，包含聚类大小均值和标准差的数组。
     :rtype:
     """
     predictions = []
@@ -118,7 +115,7 @@ def batch_predict(net, eval_data, batch_size):
             labels.append(helpers.npy(label))
             predictions.append(helpers.npy(pred).argmax(axis=1))
 
-            # Only calculate losses for full batches
+            # 仅计算完整批次的损失
             if label.size(0) == batch_size:
                 batch_losses = net.calc_losses(ignore_in_total=IGNORE_IN_TOTAL)
                 losses.append(helpers.npy(batch_losses))
@@ -131,6 +128,17 @@ def batch_predict(net, eval_data, batch_size):
 
 
 def get_logs(cfg, net, eval_data, iter_losses=None, epoch=None, include_params=True):
+    """
+    获取日志
+    
+    :param cfg: 配置
+    :param net: 模型
+    :param eval_data: 评估数据
+    :param iter_losses: 迭代损失
+    :param epoch: 轮数
+    :param include_params: 是否包含参数
+    :return: 日志字典
+    """
     if iter_losses is not None:
         logs = helpers.add_prefix(helpers.dict_means(iter_losses), "iter_losses")
     else:
@@ -150,33 +158,33 @@ def get_logs(cfg, net, eval_data, iter_losses=None, epoch=None, include_params=T
 
 def eval_run(cfg, cfg_name, experiment_identifier, run, net, eval_data, callbacks=tuple(), load_best=True):
     """
-    Evaluate a training run.
+    评估训练运行。
 
-    :param cfg: Experiment config
+    :param cfg: 实验配置
     :type cfg: config.defaults.Experiment
-    :param cfg_name: Config name
+    :param cfg_name: 配置名称
     :type cfg_name: str
-    :param experiment_identifier: 8-character unique identifier for the current experiment
+    :param experiment_identifier: 当前实验的 8 字符唯一标识符
     :type experiment_identifier: str
-    :param run: Run to evaluate
+    :param run: 要评估的运行
     :type run: int
-    :param net: Model
+    :param net: 模型
     :type net:
-    :param eval_data: Evaluation dataloder
+    :param eval_data: 评估数据加载器
     :type eval_data: th.utils.data.DataLoader
-    :param callbacks: List of callbacks to call after evaluation
+    :param callbacks: 评估后要调用的回调列表
     :type callbacks: List
-    :param load_best: Load the "best.pt" model before evaluation?
+    :param load_best: 评估前加载 "best.pt" 模型？
     :type load_best: bool
-    :return: Evaluation logs
+    :return: 评估日志
     :rtype: dict
     """
     if load_best:
         model_path = helpers.get_save_dir(cfg_name, experiment_identifier, run) / "best.pt"
         if os.path.isfile(model_path):
-            net.load_state_dict(th.load(model_path))
+            net.load_state_dict(th.load(model_path, weights_only=True))
         else:
-            print(f"Unable to load best model for evaluation. Model file not found: {model_path}")
+            print(f"无法加载最佳模型进行评估。模型文件未找到: {model_path}")
     logs = get_logs(cfg, net, eval_data, include_params=True)
     for cb in callbacks:
         cb.at_eval(net=net, logs=logs)
@@ -185,15 +193,39 @@ def eval_run(cfg, cfg_name, experiment_identifier, run, net, eval_data, callback
 
 def eval_experiment(cfg_name, tag, plot=False):
     """
-    Evaluate a full experiment
+    评估完整实验
 
-    :param cfg_name: Name of the config
+    :param cfg_name: 配置名称
     :type cfg_name: str
-    :param tag: 8-character unique identifier for the current experiment
+    :param tag: 当前实验的 8 字符唯一标识符
     :type tag: str
-    :param plot: Display a scatterplot of the representations before and after fusion?
+    :param plot: 显示融合前后表示的散点图？
     :type plot: bool
     """
+    def move_all_tensors_to_cpu(module):
+        """递归将模块中的所有张量移动到CPU"""
+        for name, child in module.named_children():
+            move_all_tensors_to_cpu(child)
+        for name, param in module._parameters.items():
+            if param is not None:
+                module._parameters[name] = param.cpu()
+        for name, buf in module._buffers.items():
+            if buf is not None:
+                module._buffers[name] = buf.cpu()
+        # 移动其他可能不是参数或缓冲区的张量属性
+        for attr_name in dir(module):
+            # 检查是否为张量属性（包括以下划线开头的属性）
+            try:
+                attr = getattr(module, attr_name)
+                if isinstance(attr, th.Tensor):
+                    setattr(module, attr_name, attr.cpu())
+            except AttributeError:
+                pass
+
+    # 在评估时强制使用CPU设备
+    import config
+    config.DEVICE = th.device('cpu')
+
     max_n_runs = 100
     best_logs = None
     best_run = None
@@ -203,6 +235,11 @@ def eval_experiment(cfg_name, tag, plot=False):
     for run in range(max_n_runs):
         try:
             net, views, labels, cfg = from_file(cfg_name, tag, run, ckpt="best", return_data=True, return_config=True)
+            net = net.cpu()  # 将模型移动到CPU进行评估
+            move_all_tensors_to_cpu(net)  # 确保所有张量都在CPU上
+            # 特别处理loss模块中的eye张量
+            if hasattr(net, 'loss') and hasattr(net.loss, 'eye'):
+                net.loss.eye = net.loss.eye.cpu()
         except FileNotFoundError:
             break
 
@@ -217,8 +254,8 @@ def eval_experiment(cfg_name, tag, plot=False):
             best_run = run
             best_net = net
 
-    print(f"\nBest run was {best_run}.", end="\n\n")
-    headers = ["Name", "Value"]
+    print(f"\n最佳运行是 {best_run}。", end="\n\n")
+    headers = ["名称", "值"]
     values = list(best_logs.items())
     print(tabulate(values, headers=headers), "\n")
     
@@ -228,6 +265,14 @@ def eval_experiment(cfg_name, tag, plot=False):
     
 
 def plot_representations(views, labels, net, project_method="pca"):
+    """
+    绘制表示
+    
+    :param views: 多视图数据
+    :param labels: 标签
+    :param net: 模型
+    :param project_method: 投影方法
+    """
     with th.no_grad():
         output = net([th.tensor(v) for v in views])
         pred = helpers.npy(output).argmax(axis=1)
@@ -243,13 +288,26 @@ def plot_representations(views, labels, net, project_method="pca"):
     class_cmap = "hls"
     fig, ax = plt.subplots(1, 2, figsize=(20, 10))
 
-    plot_projection(X=hidden, method=project_method, hue=view_hue, ax=ax[0], title="Before fusion",
+    plot_projection(X=hidden, method=project_method, hue=view_hue, ax=ax[0], title="Before Fusion",
                     legend_title="View", hue_order=sorted(list(set(view_hue))), cmap=view_cmap)
-    plot_projection(X=fused, method=project_method, hue=fused_hue, ax=ax[1], title="After fusion",
+    plot_projection(X=fused, method=project_method, hue=fused_hue, ax=ax[1], title="After Fusion",
                     legend_title="Prediction", hue_order=sorted(list(set(fused_hue))), cmap=class_cmap)
 
 
 def plot_projection(X, method, hue, ax, title=None, cmap="tab10", legend_title=None, legend_loc=1, **kwargs):
+    """
+    绘制投影
+    
+    :param X: 输入数据
+    :param method: 投影方法
+    :param hue: 色调
+    :param ax: 轴
+    :param title: 标题
+    :param cmap: 颜色映射
+    :param legend_title: 图例标题
+    :param legend_loc: 图例位置
+    :param kwargs: 额外参数
+    """
     X = project(X, method)
     pl = sns.scatterplot(x=X[:, 0], y=X[:, 1], hue=hue, ax=ax, legend="full", palette=cmap, **kwargs)
     leg = pl.get_legend()
@@ -261,6 +319,13 @@ def plot_projection(X, method, hue, ax, title=None, cmap="tab10", legend_title=N
 
 
 def project(X, method):
+    """
+    投影方法
+    
+    :param X: 输入数据
+    :param method: 投影方法
+    :return: 投影后的数据
+    """
     if method == "pca":
         from sklearn.decomposition import PCA
         return PCA(n_components=2).fit_transform(X)
@@ -274,6 +339,11 @@ def project(X, method):
 
 
 def parse_args():
+    """
+    解析参数
+    
+    :return: 参数
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", dest="cfg_name", required=True)
     parser.add_argument("-t", "--tag", dest="tag", required=True)

@@ -2,163 +2,164 @@ from typing import Tuple, List, Union, Optional
 from typing_extensions import Literal
 
 from config import Config
+from pydantic import Field
 
 
 class Dataset(Config):
-    # Name of the dataset. Must correspond to a filename in data/processed/
+    # 数据集名称。必须与 data/processed/ 中的文件名对应
     name: str
-    # Number of samples to load. Set to None to load all samples
+    # 加载的样本数量。设置为 None 以加载所有样本
     n_samples: int = None
-    # Subset of views to load. Set to None to load all views
+    # 要加载的视图子集。设置为 None 以加载所有视图
     select_views: Tuple[int, ...] = None
-    # Subset of labels (classes) to load. Set to None to load all classes
+    # 要加载的标签（类别）子集。设置为 None 以加载所有类别
     select_labels: Tuple[int, ...] = None
-    # Number of samples to load for each class. Set to None to load all samples
+    # 每个类别要加载的样本数量。设置为 None 以加载所有样本
     label_counts: Tuple[int, ...] = None
-    # Standard deviation of noise added to the views `noise_views`.
+    # 添加到视图 `noise_views` 的噪声标准差
     noise_sd: float = None
-    # Subset of views to add noise to
+    # 要添加噪声的视图子集
     noise_views: Tuple[int, ...] = None
 
 
 class Loss(Config):
-    # Number of clusters
+    # 聚类数量
     n_clusters: int = None
-    # Terms to use in the loss, separated by '|'. E.g. "ddc_1|ddc_2|ddc_3|" for the DDC clustering loss
+    # 损失中使用的项，用 '|' 分隔。例如，"ddc_1|ddc_2|ddc_3|" 用于 DDC 聚类损失
     funcs: str
-    # Optional weights for the loss terms. Set to None to have all weights equal to 1.
+    # 损失项的可选权重。设置为 None 使所有权重等于 1
     weights: Tuple[Union[float, int], ...] = None
-    # Multiplication factor for the sigma hyperparameter
-    rel_sigma = 0.15
-    # Tau hyperparameter
-    tau = 0.1
-    # Delta hyperparameter
-    delta = 0.1
-    # Fraction of batch size to use as the number of negative samples in the contrastive loss. Set to -1 to use all
-    # pairs (except the positive) as negative pairs.
+    # sigma 超参数的乘法因子
+    rel_sigma: float = 0.15
+    # Tau 超参数
+    tau: float = 0.1
+    # Delta 超参数
+    delta: float = 0.1
+    # 在对比损失中用作负样本数量的批量大小的比例。设置为 -1 以使用所有
+    # 对（除了正样本）作为负样本对
     negative_samples_ratio: float = 0.25
-    # Similarity function for the contrastive loss. "cos" (default) and "gauss" are supported.
+    # 对比损失的相似性函数。支持 "cos"（默认）和 "gauss"
     contrastive_similarity: Literal["cos", "gauss"] = "cos"
-    # Enable the adaptive contrastive weighting?
-    adaptive_contrastive_weight = True
+    # 是否启用自适应对比权重
+    adaptive_contrastive_weight: bool = True
 
 
 class Optimizer(Config):
-    # Base learning rate
+    # 基础学习率
     learning_rate: float = 0.001
-    # Max gradient norm for gradient clipping.
+    # 梯度裁剪的最大梯度范数
     clip_norm: float = 5.0
-    # Step size for the learning rate scheduler. None disables the scheduler.
+    # 学习率调度器的步长。None 禁用调度器
     scheduler_step_size: int = None
-    # Multiplication factor for the learning rate scheduler
+    # 学习率调度器的乘法因子
     scheduler_gamma: float = 0.1
 
 
 class DDC(Config):
-    # Number of clusters
+    # 聚类数量
     n_clusters: int = None
-    # Number of units in the first fully connected layer
-    n_hidden = 100
-    # Use batch norm after the first fully connected layer?
-    use_bn = True
+    # 第一个全连接层中的单元数
+    n_hidden: int = 100
+    # 在第一个全连接层后使用批归一化？
+    use_bn: bool = True
 
 
 class CNN(Config):
-    # Shape of the input image. Format: CHW
+    # 输入图像的形状。格式：CHW
     input_size: Tuple[int, ...] = None
-    # Network layers
-    layers = (
-        ("conv", 5, 5, 32, "relu"),
-        ("conv", 5, 5, 32, None),
-        ("bn",),
-        ("relu",),
-        ("pool", 2, 2),
-        ("conv", 3, 3, 32, "relu"),
-        ("conv", 3, 3, 32, None),
-        ("bn",),
-        ("relu",),
-        ("pool", 2, 2),
+    # 网络层
+    layers: Tuple = (
+        ("conv", 5, 5, 32, "relu"),  # 卷积层：核大小 5x5，输出通道 32，激活函数 relu
+        ("conv", 5, 5, 32, None),     # 卷积层：核大小 5x5，输出通道 32，无激活函数
+        ("bn",),                      # 批归一化层
+        ("relu",),                    # ReLU 激活层
+        ("pool", 2, 2),               # 池化层：大小 2x2
+        ("conv", 3, 3, 32, "relu"),  # 卷积层：核大小 3x3，输出通道 32，激活函数 relu
+        ("conv", 3, 3, 32, None),     # 卷积层：核大小 3x3，输出通道 32，无激活函数
+        ("bn",),                      # 批归一化层
+        ("relu",),                    # ReLU 激活层
+        ("pool", 2, 2),               # 池化层：大小 2x2
     )
 
 
 class MLP(Config):
-    # Shape of the input
+    # 输入的形状
     input_size: Tuple[int, ...] = None
-    # Units in the network layers
+    # 网络层中的单元数
     layers: Tuple[Union[int, str], ...] = (512, 512, 256)
-    # Activation function. Can be a single string specifying the activation function for all layers, or a list/tuple of
-    # string specifying the activation function for each layer.
+    # 激活函数。可以是单个字符串，指定所有层的激活函数，或者是列表/元组
+    # 字符串，指定每层的激活函数
     activation: Union[str, None, List[Union[None, str]], Tuple[Union[None, str], ...]] = "relu"
-    # Include bias parameters? A single bool for all layers, or a list/tuple of booleans for individual layers.
+    # 是否包含偏置参数？单个布尔值适用于所有层，或布尔值的列表/元组适用于各个层
     use_bias: Union[bool, Tuple[bool, ...]] = True
-    # Include batch norm after layers? A single bool for all layers, or a list/tuple of booleans for individual layers.
+    # 是否在层后包含批归一化？单个布尔值适用于所有层，或布尔值的列表/元组适用于各个层
     use_bn: Union[bool, Tuple[bool, ...]] = False
 
 
 class Fusion(Config):
-    # Fusion method. "mean" constant weights = 1/V. "weighted_mean": Weighted average with learned weights.
+    # 融合方法。"mean" 固定权重 = 1/V。"weighted_mean"：使用学习的权重进行加权平均
     method: Literal["mean", "weighted_mean"]
-    # Number of views in the dataset
+    # 数据集中的视图数量
     n_views: int
 
 
 class DDCModel(Config):
-    # Encoder network config
+    # 编码器网络配置
     backbone_config: Union[MLP, CNN]
-    # Clustering module config
+    # 聚类模块配置
     cm_config: Union[DDC]
-    # Loss function config
+    # 损失函数配置
     loss_config: Loss
-    # Optimizer config
-    optimizer_config = Optimizer()
+    # 优化器配置
+    optimizer_config: Optimizer = Optimizer()
 
 
 class SiMVC(Config):
-    # Tuple of encoder configs. One for each modality.
+    # 编码器配置元组。每个模态一个
     backbone_configs: Tuple[Union[MLP, CNN], ...]
-    # Fusion module config.
+    # 融合模块配置
     fusion_config: Fusion
-    # Clustering module config.
+    # 聚类模块配置
     cm_config: Union[DDC]
-    # Loss function config
+    # 损失函数配置
     loss_config: Loss
-    # Optimizer config
-    optimizer_config = Optimizer()
+    # 优化器配置
+    optimizer_config: Optimizer = Optimizer()
 
 
 class CoMVC(Config):
-    # Tuple of encoder configs. One for each modality.
+    # 编码器配置元组。每个模态一个
     backbone_configs: Tuple[Union[MLP, CNN], ...]
-    # Projection head config. Set to None to remove the projection head.
+    # 投影头配置。设置为 None 以移除投影头
     projector_config: Optional[MLP]
-    # Fusion module config.
+    # 融合模块配置
     fusion_config: Fusion
-    # Clustering module config.
+    # 聚类模块配置
     cm_config: Union[DDC]
-    # Loss function config
+    # 损失函数配置
     loss_config: Loss
-    # Optimizer config
-    optimizer_config = Optimizer()
+    # 优化器配置
+    optimizer_config: Optimizer = Optimizer()
 
 
 class Experiment(Config):
-    # Dataset config
+    # 数据集配置
     dataset_config: Dataset
-    # Model config
-    model_config: Union[CoMVC, SiMVC, DDC]
-    # Number of training runs
-    n_runs = 20
-    # Number of training epochs
-    n_epochs = 100
-    # Batch size
-    batch_size = 100
-    # Number of epochs between model evaluation.
+    # 模型配置
+    model_configuration: Union[CoMVC, SiMVC, DDC] = Field(alias="model_config")
+    # 训练运行次数
+    n_runs: int = 20
+    # 训练轮数
+    n_epochs: int = 100
+    # 批量大小
+    batch_size: int = 100
+    # 模型评估之间的轮数
     eval_interval: int = 4
-    # Number of epochs between model checkpoints.
-    checkpoint_interval = 20
-    # Patience for early stopping.
-    patience = 50000
-    # Number of samples to use for evaluation. Set to None to use all samples in the dataset.
+    # 模型检查点之间的轮数
+    checkpoint_interval: int = 20
+    # 早停的耐心值
+    patience: int = 50000
+    # 用于评估的样本数量。设置为 None 以使用数据集中的所有样本
     n_eval_samples: int = None
-    # Term in loss function to use for model selection. Set to "tot" to use the sum of all terms.
-    best_loss_term = "ddc_1"
+    # 用于模型选择的损失函数项。设置为 "tot" 以使用所有项的总和
+    best_loss_term: str = "ddc_1"

@@ -10,28 +10,35 @@ import config
 
 def npy(t, to_cpu=True):
     """
-    Convert a tensor to a numpy array.
+    将张量转换为numpy数组。
 
-    :param t: Input tensor
+    :param t: 输入张量
     :type t: th.Tensor
-    :param to_cpu: Call the .cpu() method on `t`?
+    :param to_cpu: 是否调用`t`的.cpu()方法？
     :type to_cpu: bool
-    :return: Numpy array
+    :return: numpy数组
     :rtype: np.ndarray
     """
     if isinstance(t, (list, tuple)):
-        # We got a list. Convert each element to numpy
+        # 输入是列表。将每个元素转换为numpy
         return [npy(ti) for ti in t]
     elif isinstance(t, dict):
-        # We got a dict. Convert each value to numpy
+        # 输入是字典。将每个值转换为numpy
         return {k: npy(v) for k, v in t.items()}
-    # Assuming t is a tensor.
+    # 假设t是张量
     if to_cpu:
         return t.cpu().detach().numpy()
     return t.detach().numpy()
 
 
 def ensure_iterable(elem, expected_length=1):
+    """
+    确保元素是可迭代的
+    
+    :param elem: 元素
+    :param expected_length: 期望长度
+    :return: 可迭代对象
+    """
     if isinstance(elem, (list, tuple)):
         assert len(elem) == expected_length, f"Expected iterable {elem} with length {len(elem)} does not have " \
                                              f"expected length {expected_length}"
@@ -42,11 +49,11 @@ def ensure_iterable(elem, expected_length=1):
 
 def dict_means(dicts):
     """
-    Compute the mean value of keys in a list of dicts
+    计算字典列表中键的平均值
 
-    :param dicts: Input dicts
+    :param dicts: 输入字典列表
     :type dicts: List[dict]
-    :return: Mean values
+    :return: 平均值
     :rtype: dict
     """
     return pd.DataFrame(dicts).mean(axis=0).to_dict()
@@ -54,15 +61,15 @@ def dict_means(dicts):
 
 def add_prefix(dct, prefix, sep="/"):
     """
-    Add a prefix to all keys in `dct`.
+    为`dct`中的所有键添加前缀
 
-    :param dct: Input dict
+    :param dct: 输入字典
     :type dct: dict
-    :param prefix: Prefix
+    :param prefix: 前缀
     :type prefix: str
-    :param sep: Separator between prefix and key
+    :param sep: 前缀和键之间的分隔符
     :type sep: str
-    :return: Dict with prefix prepended to all keys
+    :return: 所有键都添加了前缀的字典
     :rtype: dict
     """
     return {prefix + sep + key: value for key, value in dct.items()}
@@ -70,33 +77,33 @@ def add_prefix(dct, prefix, sep="/"):
 
 def ordered_cmat(labels, pred):
     """
-    Compute the confusion matrix and accuracy corresponding to the best cluster-to-class assignment.
+    计算对应最佳聚类到类分配的混淆矩阵和准确率
 
-    :param labels: Label array
+    :param labels: 标签数组
     :type labels: np.array
-    :param pred: Predictions array
+    :param pred: 预测数组
     :type pred: np.array
-    :return: Accuracy and confusion matrix
+    :return: 准确率和混淆矩阵
     :rtype: Tuple[float, np.array]
     """
-    cmat = confusion_matrix(labels, pred)
-    ri, ci = linear_sum_assignment(-cmat)
-    ordered = cmat[np.ix_(ri, ci)]
-    acc = np.sum(np.diag(ordered))/np.sum(ordered)
+    cmat = confusion_matrix(labels, pred)  # 计算混淆矩阵
+    ri, ci = linear_sum_assignment(-cmat)  # 找到最佳分配
+    ordered = cmat[np.ix_(ri, ci)]  # 重新排序混淆矩阵
+    acc = np.sum(np.diag(ordered))/np.sum(ordered)  # 计算准确率
     return acc, ordered
 
 
 def get_save_dir(experiment_name, identifier, run):
     """
-    Get the save dir for an experiment
+    获取实验的保存目录
 
-    :param experiment_name: Name of the config
+    :param experiment_name: 配置名称
     :type experiment_name: str
-    :param identifier: 8-character unique identifier for the current experiment
+    :param identifier: 当前实验的8字符唯一标识符
     :type identifier: str
-    :param run: Current training run
+    :param run: 当前训练运行
     :type run: int
-    :return: Path to save dir
+    :return: 保存目录路径
     :rtype: pathlib.Path
     """
     if not str(run).startswith("run-"):
@@ -106,9 +113,9 @@ def get_save_dir(experiment_name, identifier, run):
 
 def he_init_weights(module):
     """
-    Initialize network weights using the He (Kaiming) initialization strategy.
+    使用He（Kaiming）初始化策略初始化网络权重
 
-    :param module: Network module
+    :param module: 网络模块
     :type module: nn.Module
     """
     if isinstance(module, (nn.Conv2d, nn.Linear)):
@@ -116,24 +123,30 @@ def he_init_weights(module):
 
 
 def num2tuple(num):
+    """
+    将数字转换为元组
+    
+    :param num: 数字或可迭代对象
+    :return: 元组
+    """
     return num if isinstance(num, (tuple, list)) else (num, num)
 
 
 def conv2d_output_shape(h_w, kernel_size=1, stride=1, pad=0, dilation=1):
     """
-    Compute the output shape of a convolution operation.
+    计算卷积操作的输出形状
 
-    :param h_w: Height and width of input
+    :param h_w: 输入的高度和宽度
     :type h_w: Tuple[int, int]
-    :param kernel_size: Size of kernel
+    :param kernel_size: 核大小
     :type kernel_size: Union[int, Tuple[int, int]]
-    :param stride: Stride of convolution
+    :param stride: 卷积步长
     :type stride: Union[int, Tuple[int, int]]
-    :param pad: Padding (in pixels)
+    :param pad: 填充（像素）
     :type pad: Union[int, Tuple[int, int]]
-    :param dilation: Dilation
+    :param dilation: 膨胀率
     :type dilation: Union[int, Tuple[int, int]]
-    :return: Height and width of output
+    :return: 输出的高度和宽度
     :rtype: Tuple[int, int]
     """
     h_w, kernel_size, stride, = num2tuple(h_w), num2tuple(kernel_size), num2tuple(stride)
