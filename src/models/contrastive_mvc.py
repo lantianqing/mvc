@@ -13,47 +13,41 @@ from models.model_base import ModelBase
 class CoMVC(ModelBase):
     def __init__(self, cfg):
         """
-        CoMVC 模型的实现。
+        Implementation of the CoMVC model.
 
-        :param cfg: 模型配置。有关配置对象的文档，请参见 `config.defaults.CoMVC`。
+        :param cfg: Model config. See `config.defaults.CoMVC` for documentation on the config object.
         """
         super().__init__()
 
         self.cfg = cfg
         self.output = self.hidden = self.fused = self.backbone_outputs = self.projections = None
 
-        # 定义骨干网络和融合模块
+        # Define Backbones and Fusion modules
         self.backbones = Backbones(cfg.backbone_configs)
         self.fusion = get_fusion_module(cfg.fusion_config, self.backbones.output_sizes)
 
         bb_sizes = self.backbones.output_sizes
-        assert all([bb_sizes[0] == s for s in bb_sizes]), f"CoMVC 要求所有骨干网络具有相同的 " \
-                                                          f"输出大小。得到: {bb_sizes}"
+        assert all([bb_sizes[0] == s for s in bb_sizes]), f"CoMVC requires all backbones to have the same " \
+                                                          f"output size. Got: {bb_sizes}"
 
         if cfg.projector_config is None:
-            self.projector = nn.Identity()  # 恒等映射
+            self.projector = nn.Identity()
         else:
-            self.projector = MLP(cfg.projector_config, input_size=bb_sizes[0])  # 投影器
+            self.projector = MLP(cfg.projector_config, input_size=bb_sizes[0])
 
-        # 定义聚类模块
+        # Define clustering module
         self.ddc = DDC(input_dim=self.fusion.output_size, cfg=cfg.cm_config)
-        # 定义损失模块
+        # Define loss-module
         self.loss = Loss(cfg=cfg.loss_config)
-        # 初始化权重
+        # Initialize weights.
         self.apply(helpers.he_init_weights)
-        # 实例化优化器
+        # Instantiate optimizer
         self.optimizer = Optimizer(cfg.optimizer_config, self.parameters())
 
     def forward(self, views):
-        """
-        前向传播
-        
-        :param views: 多视图输入
-        :return: 聚类分配
-        """
-        self.backbone_outputs = self.backbones(views)  # 骨干网络输出
-        self.fused = self.fusion(self.backbone_outputs)  # 特征融合
-        self.projections = self.projector(th.cat(self.backbone_outputs, dim=0))  # 投影
-        self.output, self.hidden = self.ddc(self.fused)  # 聚类
+        self.backbone_outputs = self.backbones(views)
+        self.fused = self.fusion(self.backbone_outputs)
+        self.projections = self.projector(th.cat(self.backbone_outputs, dim=0))
+        self.output, self.hidden = self.ddc(self.fused)
         return self.output
 

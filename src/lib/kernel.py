@@ -2,26 +2,26 @@ import torch as th
 from torch.nn.functional import relu
 
 
-EPSILON = 1E-9  # 数值稳定性常量
+EPSILON = 1E-9
 
 
 def kernel_from_distance_matrix(dist, rel_sigma, min_sigma=EPSILON):
     """
-    从距离矩阵计算高斯核矩阵
+    Compute a Gaussian kernel matrix from a distance matrix.
 
-    :param dist: 距离矩阵
+    :param dist: Disatance matrix
     :type dist: th.Tensor
-    :param rel_sigma: sigma超参数的乘法因子
+    :param rel_sigma: Multiplication factor for the sigma hyperparameter
     :type rel_sigma: float
-    :param min_sigma: sigma的最小值，用于数值稳定性
+    :param min_sigma: Minimum value for sigma. For numerical stability.
     :type min_sigma: float
-    :return: 核矩阵
+    :return: Kernel matrix
     :rtype: th.Tensor
     """
-    # 由于浮点误差，`dist`有时会包含负值，所以将这些值设为零
+    # `dist` can sometimes contain negative values due to floating point errors, so just set these to zero.
     dist = relu(dist)
     sigma2 = rel_sigma * th.median(dist)
-    # 禁用sigma的梯度
+    # Disable gradient for sigma
     sigma2 = sigma2.detach()
     sigma2 = th.where(sigma2 < min_sigma, sigma2.new_tensor(min_sigma), sigma2)
     k = th.exp(- dist / (2 * sigma2))
@@ -30,13 +30,13 @@ def kernel_from_distance_matrix(dist, rel_sigma, min_sigma=EPSILON):
 
 def vector_kernel(x, rel_sigma=0.15):
     """
-    从矩阵的行计算核矩阵
+    Compute a kernel matrix from the rows of a matrix.
 
-    :param x: 输入矩阵
+    :param x: Input matrix
     :type x: th.Tensor
-    :param rel_sigma: sigma超参数的乘法因子
+    :param rel_sigma: Multiplication factor for the sigma hyperparameter
     :type rel_sigma: float
-    :return: 核矩阵
+    :return: Kernel matrix
     :rtype: th.Tensor
     """
     return kernel_from_distance_matrix(cdist(x, x), rel_sigma)
@@ -44,13 +44,13 @@ def vector_kernel(x, rel_sigma=0.15):
 
 def cdist(X, Y):
     """
-    X的行和Y的行之间的成对距离
+    Pairwise distance between rows of X and rows of Y.
 
-    :param X: 第一个输入矩阵
+    :param X: First input matrix
     :type X: th.Tensor
-    :param Y: 第二个输入矩阵
+    :param Y: Second input matrix
     :type Y: th.Tensor
-    :return: 包含X的行和Y的行之间成对距离的矩阵
+    :return: Matrix containing pairwise distances between rows of X and rows of Y
     :rtype: th.Tensor
     """
     xyT = X @ th.t(Y)

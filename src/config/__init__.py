@@ -48,7 +48,7 @@ def get_config_by_name(name):
             cfg = getattr(experiments, name)
     except Exception as err:
         raise RuntimeError(f"Config not found: {name}") from err
-    cfg.model_configuration.loss_config.n_clusters = cfg.model_configuration.cm_config.n_clusters
+    cfg.model_config.loss_config.n_clusters = cfg.model_config.cm_config.n_clusters
     return cfg
 
 
