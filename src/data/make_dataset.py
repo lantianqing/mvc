@@ -42,13 +42,14 @@ def _concat_edge_image(img):
     return np.stack((img, edge), axis=-1)
 
 
-def _mnist(add_edge_img, dataset_class=torchvision.datasets.MNIST):
+def _mnist(add_edge_img, dataset_class=torchvision.datasets.MNIST, **dataset_kwargs):
     """加载MNIST数据集
-    
+
     Args:
         add_edge_img: 是否添加边缘图像
         dataset_class: 数据集类
-    
+        **dataset_kwargs: 数据集的额外参数（如 EMNIST 的 split 参数）
+
     Returns:
         数据和标签
     """
@@ -56,7 +57,13 @@ def _mnist(add_edge_img, dataset_class=torchvision.datasets.MNIST):
     if add_edge_img:
         img_transforms.insert(0, _concat_edge_image)
     transform = transforms.Compose(img_transforms)
-    dataset = dataset_class(root=config.DATA_DIR / "raw", train=True, download=True, transform=transform)
+    dataset = dataset_class(
+        root=config.DATA_DIR / "raw",
+        train=True,
+        download=True,
+        transform=transform,
+        **dataset_kwargs
+    )
 
     loader = th.utils.data.DataLoader(dataset, batch_size=len(dataset))
     data, labels = list(loader)[0]
@@ -77,6 +84,14 @@ def fmnist():
     data, labels = _mnist(add_edge_img=True, dataset_class=torchvision.datasets.FashionMNIST)
     views = np.split(data, data.shape[1], axis=1)
     export_dataset("fmnist", views=views, labels=labels)
+
+
+def emnist():
+    """创建多视图EMNIST数据集（ByClass split，62个类：10数字+26大写+26小写）
+    """
+    data, labels = _mnist(add_edge_img=True, dataset_class=torchvision.datasets.EMNIST, split="byclass")
+    views = np.split(data, data.shape[1], axis=1)
+    export_dataset("emnist", views=views, labels=labels)
 
 
 def ccv():
@@ -176,7 +191,8 @@ LOADERS = {
     "blobs_overlap": blobs_overlap,
     "blobs_overlap_5": blobs_overlap_5,
     "fmnist": fmnist,
-    "coil": coil
+    "coil": coil,
+    "emnist": emnist
 }
 
 

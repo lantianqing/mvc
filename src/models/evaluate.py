@@ -85,7 +85,7 @@ def get_eval_data(dataset, n_eval_samples, batch_size):
         views, labels = [v[idx] for v in views], labels[idx]
         dataset = th.utils.data.TensorDataset(*views, labels)
 
-    eval_loader = th.utils.data.DataLoader(dataset, batch_size=int(batch_size), shuffle=True, num_workers=0,
+    eval_loader = th.utils.data.DataLoader(dataset, batch_size=int(batch_size), shuffle=False, num_workers=0,
                                            drop_last=False, pin_memory=False)
     return eval_loader
 
@@ -115,11 +115,21 @@ def batch_predict(net, eval_data, batch_size):
             labels.append(helpers.npy(label))
             predictions.append(helpers.npy(pred).argmax(axis=1))
 
-            # 仅计算完整批次的损失
+            # 计算损失：跳过不完整批次，避免错误计算
             if label.size(0) == batch_size:
                 batch_losses = net.calc_losses(ignore_in_total=IGNORE_IN_TOTAL)
                 losses.append(helpers.npy(batch_losses))
-                cluster_sizes.append(helpers.npy(pred.sum(dim=0)))
+            # 对于不完整批次，使用累积的 losses 列表来获取前一批次的损失
+            elif len(losses) > 0:
+                # 从上一次的损失字典复制值
+                prev_batch_losses = losses[-1]
+                batch_losses = {k: prev_batch_losses[k] for k in prev_batch_losses.keys()}
+                losses.append(helpers.npy(batch_losses))
+            else:
+                # 首次迭代，跳过
+                pass
+
+            cluster_sizes.append(helpers.npy(pred.sum(dim=0)))
 
     labels = np.concatenate(labels, axis=0)
     predictions = np.concatenate(predictions, axis=0)

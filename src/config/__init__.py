@@ -64,6 +64,8 @@ def get_experiment_config():
     name = parse_config_name_arg()
     cfg = get_config_by_name(name)
     update_cfg(cfg)
+    # 确保 loss_config.n_clusters 正确设置（在 update_cfg 之后可能被重置为 None）
+    cfg.model_configuration.loss_config.n_clusters = cfg.model_configuration.cm_config.n_clusters
     return name, cfg
 
 

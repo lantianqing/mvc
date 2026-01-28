@@ -253,6 +253,13 @@ class Contrastive(LossTerm):
 
         weights = (1 - self.eye[cat])[:, cat[[pos_indices]]].T
         n_negative_samples = int(cfg.negative_samples_ratio * cat.size(0))
+
+        # 处理全零权重的情况（训练初期所有样本预测相同类别时）
+        if weights.sum() == 0:
+            # 使用均匀随机采样
+            n_samples = cat.size(0)
+            weights = th.ones_like(weights) / n_samples
+
         negative_sample_indices = th.multinomial(weights, n_negative_samples, replacement=True)
         if DEBUG_MODE:
             self._check_negative_samples_valid(cat, pos_indices, negative_sample_indices)

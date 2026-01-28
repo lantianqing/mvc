@@ -5,3 +5,4 @@ from .voc import *
 from .rgbd import *
 from .fmnist import *
 from .coil import *
+from .emnist import *

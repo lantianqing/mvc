@@ -21,14 +21,24 @@ def npy(t, to_cpu=True):
     """
     if isinstance(t, (list, tuple)):
         # 输入是列表。将每个元素转换为numpy
-        return [npy(ti) for ti in t]
+        return [npy(ti, to_cpu) for ti in t]
     elif isinstance(t, dict):
         # 输入是字典。将每个值转换为numpy
-        return {k: npy(v) for k, v in t.items()}
-    # 假设t是张量
-    if to_cpu:
-        return t.cpu().detach().numpy()
-    return t.detach().numpy()
+        return {k: npy(v, to_cpu) for k, v in t.items()}
+    elif isinstance(t, np.ndarray):
+        # 如果是NumPy数组，直接返回
+        return t
+    else:
+        try:
+            # 尝试转换为NumPy
+            if to_cpu and hasattr(t, 'cpu'):
+                t = t.cpu()
+            if hasattr(t, 'detach'):
+                t = t.detach()
+            return t.numpy()
+        except (AttributeError, RuntimeError):
+            # 如果转换失败，直接返回原对象
+            return t
 
 
 def ensure_iterable(elem, expected_length=1):
